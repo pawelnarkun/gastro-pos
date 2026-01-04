@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <title>Logowanie - {{ station.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .emp-btn { height: 120px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .emp-btn:hover { transform: scale(1.05); transition: 0.2s; }
+    </style>
+</head>
+<body class="bg-dark text-white d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="container text-center">
+        <h1 class="mb-4">Zaloguj się do: <span class="text-warning">{{ station.name }}</span></h1>
+        
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <div class="row g-3 justify-content-center">
+            {% for emp in employees %}
+            <div class="col-6 col-md-3">
+                <button onclick="selectEmployee({{ emp.id }}, '{{ emp.name|escapejs }}', {{ emp.pin|yesno:'true,false' }})" 
+                        class="btn btn-outline-light w-100 emp-btn border-2">
+                    <span class="fs-1">👤</span>
+                    <span class="fw-bold mt-2">{{ emp.name }}</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-5">
+            <a href="/" class="text-muted">← Powrót do wyboru stacji</a>
+        </div>
+    </div>
+
+    <div class="modal fade text-dark" id="pinModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Witaj, <span id="modalEmpName"></span></h5>
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <input type="hidden" name="employee_id" id="modalEmpId">
+                        <div id="pinArea" class="d-none">
+                            <label class="form-label">Podaj PIN:</label>
+                            <input type="password" name="pin" class="form-control text-center fs-3 letter-spacing-2" maxlength="4">
+                        </div>
+                        <p id="noPinMsg" class="mb-0">Potwierdź logowanie</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">ZALOGUJ ➔</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function selectEmployee(id, name, hasPin) {
+            document.getElementById('modalEmpId').value = id;
+            document.getElementById('modalEmpName').innerText = name;
+            
+            const pinArea = document.getElementById('pinArea');
+            const noPinMsg = document.getElementById('noPinMsg');
+            const pinInput = pinArea.querySelector('input');
+
+            if (hasPin) {
+                pinArea.classList.remove('d-none');
+                noPinMsg.classList.add('d-none');
+                pinInput.required = true;
+                pinInput.value = '';
+                setTimeout(() => pinInput.focus(), 500);
+            } else {
+                pinArea.classList.add('d-none');
+                noPinMsg.classList.remove('d-none');
+                pinInput.required = false;
+            }
+
+            new bootstrap.Modal(document.getElementById('pinModal')).show();
+        }
+    </script>
+</body>
+</html>

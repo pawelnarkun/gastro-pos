@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+
+{% block title %}
+    {{ title }} | {{ site_title|default:_('Django site admin') }}
+{% endblock %}
+
+{% block branding %}
+    <h1 id="site-name">
+        <a href="{% url 'admin:index' %}">
+            {{ site_header|default:_('Django administration') }}
+        </a>
+    </h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. Nazwa klucza w pamięci (inna niż w kuchni, żeby się nie gryzły)
+            const storageKey = 'djangoAdminScroll';
+
+            // 2. Przywracanie pozycji po przeładowaniu
+            const savedScroll = sessionStorage.getItem(storageKey);
+            if (savedScroll) {
+                window.scrollTo(0, parseInt(savedScroll));
+                // Opcjonalnie: usuń po przywróceniu, choć w adminie często klika się "Zapisz i kontynuuj",
+                // więc warto, żeby pamiętał też przy kolejnych odświeżeniach.
+                sessionStorage.removeItem(storageKey);
+            }
+
+            // 3. Zapisywanie pozycji PRZED wysłaniem formularza
+            // W adminie najlepiej nasłuchiwać zdarzenia 'submit' na formularzach,
+            // bo łapie to przyciski "Zapisz", "Zapisz i kontynuuj" oraz "Wykonaj" (akcje masowe).
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function() {
+                    sessionStorage.setItem(storageKey, window.scrollY);
+                });
+            });
+
+            // 4. Obsługa przycisków, które nie są formularzami (np. linki w tabeli, jeśli chcesz)
+            // W standardowym adminie najważniejsze są formularze, więc pkt 3 wystarczy.
+        });
+    </script>
+{% endblock %}

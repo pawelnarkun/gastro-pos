@@ -1,0 +1,96 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+  {% if daily_summary %}
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="card-header">
+        <h2 style="margin: 0;">
+          Podsumowanie dnia – {{ summary_date|date:"d.m.Y" }}
+        </h2>
+      </div>
+      <div class="card-body">
+
+        <!-- WYBÓR DNIA TYLKO DO RAPORTU PDF -->
+        <div class="mb-3">
+          <label for="id_report_date"><strong>Wybierz dzień do raportu PDF:</strong></label>
+          <input type="date"
+                 id="id_report_date"
+                 value="{{ summary_date|date:'Y-m-d' }}">
+          <button type="button"
+                  class="button default"
+                  onclick="generatePdfReport()">
+            Generuj raport PDF z wybranego dnia
+          </button>
+        </div>
+
+        <script>
+        function generatePdfReport() {
+            const input = document.getElementById('id_report_date');
+            const date = input && input.value ? input.value : '';
+
+            const baseUrl = "{% url 'admin:core_order_daily_summary_pdf' %}";
+            const url = date
+                ? baseUrl + "?summary_date=" + encodeURIComponent(date)
+                : baseUrl;
+
+            window.location.href = url;
+        }
+        </script>
+
+        <div class="row" style="margin-bottom: 15px;">
+          <div class="col-md-3">
+            <strong>Wszystkie zamówienia:</strong><br>
+            {{ daily_summary.total_orders }}
+          </div>
+          <div class="col-md-3">
+            <strong>Nowe:</strong><br>
+            {{ daily_summary.new_orders }}
+          </div>
+          <div class="col-md-3">
+            <strong>W toku:</strong><br>
+            {{ daily_summary.ready_orders }}
+          </div>
+          <div class="col-md-3">
+            <strong>Wydane:</strong><br>
+            {{ daily_summary.done_orders }}
+          </div>
+        </div>
+
+        <div class="row" style="margin-bottom: 15px;">
+          <div class="col-md-3">
+            <strong>Produkty wydane (szt.):</strong><br>
+            {{ daily_summary.total_items_done }}
+          </div>
+          <div class="col-md-3">
+            <strong>Wartość wydanych zamówień:</strong><br>
+            {{ daily_summary.total_value|floatformat:2 }} EUR
+          </div>
+          <div class="col-md-3">
+            <strong>Średnia wartość zamówienia:</strong><br>
+            {{ daily_summary.avg_value|floatformat:2 }} EUR
+          </div>
+          <div class="col-md-3">
+            <strong>Na wynos / na miejscu:</strong><br>
+            🥡 {{ daily_summary.takeaway_count }} &nbsp;|&nbsp; 🍽️ {{ daily_summary.on_site_count }}
+          </div>
+        </div>
+
+        <div class="row" style="margin-bottom: 15px;">
+          <div class="col-md-12">
+            <strong>TOP 5 produktów (wydane dziś):</strong>
+            <ul style="margin-top: 5px;">
+              {% for p in daily_summary.top_products %}
+                <li>{{ p.product_name }} – {{ p.count }} szt.</li>
+              {% empty %}
+                <li>Brak danych dla dzisiejszego dnia.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  {% endif %}
+
+  {{ block.super }}
+{% endblock %}

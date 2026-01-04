@@ -1,0 +1,12 @@
+# Python i Django
+*.pyc
+__pycache__/
+db.sqlite3
+.env
+venv/
+env/
+.DS_Store
+
+# Media (zdjęcia wgrane przez użytkowników - np. zdjęcia burgerów)
+# Chyba że chcesz, żeby przykładowe zdjęcia były w repo, to usuń tę linię:
+media/_SERVER_BACKUPS/

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <title>MAGAZYN - {{ station.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    /* bardziej zwarty widok tabeli w kuchni */
+    .product-table th,
+    .product-table td {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        vertical-align: middle;
+    }
+
+    .product-table .btn-sm {
+        padding: 0.1rem 0.3rem;
+        font-size: 0.75rem;
+    }
+
+    .product-table .form-control-sm {
+        padding: 0.1rem 0.25rem;
+        font-size: 0.75rem;
+        height: 1.7rem;
+    }
+
+    .product-table .badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    html {
+        scroll-behavior: auto !important;
+    }
+</style>
+</head>
+<body class="p-3 bg-dark">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="text-white m-0">📦 STANY MAGAZYNOWE</h1>
+   
+    <div class="d-flex gap-2">
+        <a href="{% url 'kitchen_raw_materials' station.slug %}" class="btn btn-warning fw-bold">
+            <i class="bi bi-box-seam"></i> Półprodukty (Składniki) &rarr;
+        </a>
+
+        {% if station.station_type == 'CASHIER' %}
+            <a href="{% url 'cashier' station.slug %}" class="btn btn-secondary fw-bold">
+                ⬅ POWRÓT DO KASY
+            </a>
+        {% else %}
+            <a href="{% url 'kitchen' station.slug %}" class="btn btn-secondary fw-bold">
+                ⬅ POWRÓT DO ZAMÓWIEŃ
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input
+            type="text"
+            name="q"
+            class="form-control"
+            placeholder="Szukaj po nazwie produktu lub kategorii..."
+            value="{{ query|default:'' }}"
+        >
+        <button class="btn btn-primary" type="submit">Szukaj</button>
+        {% if query %}
+            <a href="{% url 'kitchen_products' station.slug %}" class="btn btn-outline-light">Wyczyść</a>
+        {% endif %}
+    </div>
+</form>
+
+<div class="card shadow">
+    <div class="card-body p-0">
+                <table class="table table-sm table-striped mb-0 product-table">
+
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 20%;">Kategoria</th>
+                    <th style="width: 30%;">Produkt</th>
+                    <th style="width: 10%;">Cena</th>
+                    <th style="width: 10%;">Stan</th>     <th style="width: 10%;">Status</th>   <th style="width: 20%;">Akcja</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                    <tr class="{% if not p.is_active %}table-secondary{% endif %}">
+                        <td>
+                            {% if p.category %}
+                                {{ p.category.name }}
+                            {% else %}
+                                <span class="text-muted">Brak kategorii</span>
+                            {% endif %}
+                        </td>
+
+                        <td>{{ p.name }}</td>
+
+                        <td>{{ p.price }} €</td>
+
+                        <td style="white-space: nowrap;">
+                            <form method="post"
+                                action="{% url 'kitchen_update_stock' p.id %}"
+                                class="d-inline-flex align-items-center gap-1 mb-0">
+                                {% csrf_token %}
+
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        type="submit"
+                                        name="action"
+                                        value="dec">
+                                    -
+                                </button>
+
+                                <input type="number"
+                                    name="stock"
+                                    class="form-control form-control-sm text-center px-1"
+                                    min="0"
+                                    value="{{ p.stock }}"
+                                    style="width: 60px;">
+
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        type="submit"
+                                        name="action"
+                                        value="inc">
+                                    +
+                                </button>
+
+                                <button type="submit"
+                                        name="action"
+                                        value="set"
+                                        class="btn btn-sm btn-outline-primary">
+                                    Zapisz
+                                </button>
+
+                                {% if p.stock <= 0 %}
+                                    <span class="badge bg-danger ms-1 fs-6 border border-light">BRAK! ({{ p.stock }})</span>
+                                {% elif p.stock <= settings.stock_warning_limit %}
+                                    <span class="badge bg-warning text-dark ms-1 fs-6 border border-dark">Niski: {{ p.stock }}</span>
+                                {% elif p.stock >= settings.stock_safe_limit %}
+                                    <span class="badge bg-success ms-1">{{ p.stock }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary ms-1">{{ p.stock }}</span>
+                                {% endif %}
+                            </form>
+                        </td>
+
+                        <td>
+                            <div class="d-flex align-items-center gap-1">
+                                {% if p.is_active %}
+                                    <span class="badge bg-success">Aktywny</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Zablokowany</span>
+                                {% endif %}
+
+                                <form method="post"
+                                    action="{% url 'kitchen_toggle_autoblock' p.id %}">
+                                    {% csrf_token %}
+                                    {% if p.auto_block_when_zero %}
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-info">
+                                            AUTO 0 ✓
+                                        </button>
+                                    {% else %}
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-secondary">
+                                            AUTO 0
+                                        </button>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        </td>
+
+                        <td>
+                            {% if p.is_active %}
+                                <a href="{% url 'kitchen_toggle_product' p.id %}"
+                                class="btn btn-sm btn-outline-warning">
+                                    Zablokuj
+                                </a>
+                            {% else %}
+                                <a href="{% url 'kitchen_toggle_product' p.id %}"
+                                class="btn btn-sm btn-outline-success">
+                                    Odblokuj
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-3">
+                            Brak produktów do wyświetlenia.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 1. Wyłączamy automatyczne przywracanie pozycji przez przeglądarkę
+    // (żeby nie walczyła z naszym skryptem)
+    if (history.scrollRestoration) {
+        history.scrollRestoration = 'manual';
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const storageKey = 'kitchenProductScroll';
+        const savedScroll = sessionStorage.getItem(storageKey);
+
+        // 2. Jeśli mamy zapisaną pozycję, przywróć ją NATYCHMIAST
+        if (savedScroll) {
+            window.scrollTo({
+                top: parseInt(savedScroll),
+                behavior: 'instant' // Kluczowe: skok bez animacji
+            });
+            // Opcjonalnie: sessionStorage.removeItem(storageKey);
+        }
+
+        // 3. Zapisz pozycję przy kliknięciu w dowolny przycisk formularza
+        const buttons = document.querySelectorAll('.product-table button, .product-table a.btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                sessionStorage.setItem(storageKey, window.scrollY);
+            });
+        });
+    });
+</script>
+</body>
+</html>
+</body>
+</html>

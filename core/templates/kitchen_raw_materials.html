@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <title>PÓŁPRODUKTY - {{ station.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+    .product-table th,
+    .product-table td {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        vertical-align: middle;
+    }
+
+    .product-table .btn-sm {
+        padding: 0.1rem 0.3rem;
+        font-size: 0.75rem;
+    }
+
+    .product-table .form-control-sm {
+        padding: 0.1rem 0.25rem;
+        font-size: 0.75rem;
+        height: 1.7rem;
+    }
+
+    .product-table .badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    html {
+        scroll-behavior: auto !important;
+    }
+    </style>
+</head>
+<body class="p-3 bg-dark">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="text-white">🥕 PÓŁPRODUKTY (Składniki)</h1>
+    
+    <a href="{% url 'kitchen_products' station.slug %}" class="btn btn-secondary fw-bold">
+        ⬅ WRÓĆ DO PRODUKTÓW
+    </a>
+</div>
+
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input
+            type="text"
+            name="q"
+            class="form-control"
+            placeholder="Szukaj składnika (np. Cebula, Ser)..."
+            value="{{ query|default:'' }}"
+        >
+        <button class="btn btn-warning" type="submit">Szukaj</button>
+        {% if query %}
+            <a href="{% url 'kitchen_raw_materials' station.slug %}" class="btn btn-outline-light">Wyczyść</a>
+        {% endif %}
+    </div>
+</form>
+
+<div class="card shadow">
+    <div class="card-body p-0">
+        <table class="table table-sm table-striped mb-0 product-table">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 40%;">Nazwa Składnika</th>
+                    <th style="width: 10%;">Jedn.</th>
+                    <th style="width: 20%;">Stan Magazynowy</th>
+                    <th style="width: 30%;">Akcja</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in materials %}
+                    <tr>
+                        <td class="fw-bold">{{ item.name }}</td>
+                        
+                        <td><span class="badge bg-secondary">{{ item.unit }}</span></td>
+
+                        <td style="white-space: nowrap;">
+                            <form method="post"
+                                action="{% url 'kitchen_update_raw_material' item.id %}"
+                                class="d-inline-flex align-items-center gap-1 mb-0">
+                                {% csrf_token %}
+
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        type="submit"
+                                        name="action"
+                                        value="dec">
+                                    -
+                                </button>
+
+                                <input type="number"
+                                    name="stock"
+                                    step="0.1" 
+                                    class="form-control form-control-sm text-center px-1"
+                                    value="{{ item.stock|floatformat:1 }}" 
+                                    style="width: 100px;">
+
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        type="submit"
+                                        name="action"
+                                        value="inc">
+                                    +
+                                </button>
+
+                                <button type="submit"
+                                        name="action"
+                                        value="set"
+                                        class="btn btn-sm btn-outline-primary">
+                                    Zapisz
+                                </button>
+                                
+                                {% if item.stock <= settings.stock_warning_limit %}
+                                    <span class="badge bg-danger ms-1 fs-6 border border-light">NISKI</span>
+                                {% elif item.stock <= settings.stock_safe_limit %}
+                                    <span class="badge bg-warning text-dark ms-1 fs-6 border border-dark">ŚREDNI</span>
+                                {% else %}
+                                    <span class="badge bg-success ms-1">OK</span>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-3">
+                            Brak półproduktów. Dodaj je w panelu administratora.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Skrypt do zachowywania pozycji przewijania po przeładowaniu (identyczny jak w products)
+    if (history.scrollRestoration) {
+        history.scrollRestoration = 'manual';
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const storageKey = 'kitchenRawMaterialScroll'; // Inny klucz niż dla produktów
+        const savedScroll = sessionStorage.getItem(storageKey);
+
+        if (savedScroll) {
+            window.scrollTo({
+                top: parseInt(savedScroll),
+                behavior: 'instant'
+            });
+        }
+
+        const buttons = document.querySelectorAll('.product-table button, .product-table a.btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                sessionStorage.setItem(storageKey, window.scrollY);
+            });
+        });
+    });
+</script>
+</body>
+</html>
